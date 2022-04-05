@@ -1,7 +1,9 @@
+use crate::CLIENT;
+use futures_util::future::join_all;
 use reqwest::Url;
 use serde::Deserialize;
 
-const post_per_page: u64 = 10;
+const post_per_page: usize = 10;
 
 #[derive(Debug, Deserialize)]
 struct ApiPost {
@@ -17,8 +19,18 @@ pub struct Post {
 	pub file_url: String,
 }
 
-pub async fn get_post(tags: &Vec<String>, count: u64) {
+pub async fn get_posts(tags: &Vec<String>, count: usize) {
 	let base_url = Url::parse("https://konachan.net/post.json?limit=10&tags=rating:safe").unwrap();
-	let resp = tokio::spawn(async { reqwest::get(base_url).await.unwrap().text().await });
-	println!("{}", resp.await.unwrap().unwrap());
+	let mut page_count = count / post_per_page;
+	if count % post_per_page != 0 {
+		page_count += 1;
+	}
+	let mut pages = Vec::with_capacity(page_count);
+	for i in 1..=page_count {
+		pages.push(CLIENT.post(base_url.clone()).query(&[("page", i)]).send());
+	}
+	let pages = join_all(pages).await;
+	for page in pages {
+		println!("{}", page.unwrap().text().await.unwrap());
+	}
 }
