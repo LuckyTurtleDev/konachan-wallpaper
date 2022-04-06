@@ -19,18 +19,27 @@ pub struct Post {
 	pub file_url: String,
 }
 
+pub async fn download_and_save_image(url: String) {
+	CLIENT.post(url.clone()).send().await.unwrap().bytes().await.unwrap();
+	println!("downloaded {url}");
+}
+
 pub async fn get_posts(tags: &Vec<String>, count: usize) {
 	let base_url = Url::parse("https://konachan.net/post.json?limit=10&tags=rating:safe").unwrap();
-	let mut page_count = count / post_per_page;
-	if count % post_per_page != 0 {
-		page_count += 1;
+	let mut picture_count: usize = 0;
+	let mut page: u64 = 1;
+	let mut images = Vec::with_capacity(count);
+	while picture_count < count {
+		let resp = CLIENT.post(base_url.clone()).query(&[("page", page)]).send().await;
+		//todo ckech result
+		let posts = resp.unwrap().json::<Vec<ApiPost>>().await;
+		//todo ckech result
+		let posts = posts.unwrap();
+		for post in &posts {
+			images.push(tokio::spawn(download_and_save_image(post.file_url.clone())));
+			picture_count += 1;
+		}
+		page += 1;
 	}
-	let mut pages = Vec::with_capacity(page_count);
-	for i in 1..=page_count {
-		pages.push(CLIENT.post(base_url.clone()).query(&[("page", i)]).send());
-	}
-	let pages = join_all(pages).await;
-	for page in pages {
-		println!("{}", page.unwrap().text().await.unwrap());
-	}
+	join_all(images).await;
 }
