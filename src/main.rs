@@ -8,5 +8,5 @@ static CLIENT: Lazy<Client> = Lazy::new(|| Client::new());
 
 #[tokio::main]
 async fn main() {
-	get_posts(&vec!["rating:safe".to_string()], 100).await;
+	get_posts(&vec!["rating:safe".to_string()], 200).await;
 }

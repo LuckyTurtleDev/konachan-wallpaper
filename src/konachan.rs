@@ -1,9 +1,10 @@
 use crate::CLIENT;
+use anyhow::{self, bail};
 use futures_util::future::join_all;
 use reqwest::Url;
 use serde::Deserialize;
-
-const post_per_page: usize = 10;
+use std::{path::Path, time::Duration};
+use tokio::{fs, time::sleep};
 
 #[derive(Debug, Deserialize)]
 struct ApiPost {
@@ -19,24 +20,41 @@ pub struct Post {
 	pub file_url: String,
 }
 
-pub async fn download_and_save_image(url: String) {
-	CLIENT.post(url.clone()).send().await.unwrap().bytes().await.unwrap();
-	println!("downloaded {url}");
+pub async fn download_and_save_image(url: String, path: impl AsRef<Path>) {
+	let path = path.as_ref();
+	let image = CLIENT.get(url.clone()).send().await.unwrap().bytes().await.unwrap();
+	fs::write(path, image).await;
+	println!("{}", path.display());
+}
+
+async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<ApiPost>> {
+	loop {
+		let resp = CLIENT.get(base_url.clone()).query(&[("page", page)]).send().await?;
+		if resp.status().is_success() {
+			return Ok(resp.json::<Vec<ApiPost>>().await?);
+		}
+		if resp.status().is_client_error() {
+			bail!("client error {}", resp.status());
+		}
+		eprintln!("error downloading page: {:?}; retry in 50ms", resp.status());
+		sleep(Duration::from_millis(50)).await;
+	}
 }
 
 pub async fn get_posts(tags: &Vec<String>, count: usize) {
-	let base_url = Url::parse("https://konachan.net/post.json?limit=10&tags=rating:safe").unwrap();
+	let base_url = Url::parse("https://konachan.net/post.json?limit=100000&tags=rating:safe").unwrap();
 	let mut picture_count: usize = 0;
 	let mut page: u64 = 1;
 	let mut images = Vec::with_capacity(count);
 	while picture_count < count {
-		let resp = CLIENT.post(base_url.clone()).query(&[("page", page)]).send().await;
-		//todo ckech result
-		let posts = resp.unwrap().json::<Vec<ApiPost>>().await;
-		//todo ckech result
-		let posts = posts.unwrap();
+		let posts = get_page(page, &base_url).await.unwrap();
 		for post in &posts {
-			images.push(tokio::spawn(download_and_save_image(post.file_url.clone())));
+			let file_name = format!(
+				"Konachan.com - {}{}",
+				post.id,
+				&post.file_url[post.file_url.rfind(".").unwrap()..]
+			);
+			images.push(tokio::spawn(download_and_save_image(post.file_url.clone(), file_name)));
 			picture_count += 1;
 		}
 		page += 1;
