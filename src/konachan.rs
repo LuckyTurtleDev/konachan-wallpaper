@@ -49,6 +49,9 @@ pub async fn get_posts(tags: &Vec<String>, count: usize) {
 	while picture_count < count {
 		let posts = get_page(page, &base_url).await.unwrap();
 		for post in &posts {
+			if picture_count >= count {
+				break;
+			}
 			let file_name = format!(
 				"Konachan.com - {}{}",
 				post.id,
