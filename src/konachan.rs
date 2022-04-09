@@ -1,4 +1,4 @@
-use crate::CLIENT;
+use crate::{config, CLIENT};
 use anyhow::{self, bail};
 use futures_util::future::join_all;
 use reqwest::Url;
@@ -23,7 +23,7 @@ pub struct Post {
 pub async fn download_and_save_image(url: String, path: impl AsRef<Path>) {
 	let path = path.as_ref();
 	let image = CLIENT.get(url.clone()).send().await.unwrap().bytes().await.unwrap();
-	fs::write(path, image).await;
+	fs::write(path, image).await.unwrap();
 	println!("{}", path.display());
 }
 
@@ -41,11 +41,13 @@ async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<ApiPost>> {
 	}
 }
 
-pub async fn get_posts(tags: &Vec<String>, count: usize) {
+#[tokio::main]
+pub async fn get_posts(tags: &Vec<String>, count: usize) -> Vec<String> {
 	let base_url = Url::parse("https://konachan.net/post.json?limit=100000&tags=rating:safe").unwrap();
 	let mut picture_count: usize = 0;
 	let mut page: u64 = 1;
 	let mut images = Vec::with_capacity(count);
+	let mut files = Vec::with_capacity(count);
 	while picture_count < count {
 		let posts = get_page(page, &base_url).await.unwrap();
 		for post in &posts {
@@ -53,14 +55,20 @@ pub async fn get_posts(tags: &Vec<String>, count: usize) {
 				break;
 			}
 			let file_name = format!(
-				"Konachan.com - {}{}",
+				"{}Konachan.com - {}{}",
+				config::WALLPAPERS_FOLDER.as_str(),
 				post.id,
 				&post.file_url[post.file_url.rfind(".").unwrap()..]
 			);
-			images.push(tokio::spawn(download_and_save_image(post.file_url.clone(), file_name)));
+			images.push(tokio::spawn(download_and_save_image(
+				post.file_url.clone(),
+				file_name.clone(),
+			)));
+			files.push(file_name);
 			picture_count += 1;
 		}
 		page += 1;
 	}
 	join_all(images).await;
+	files
 }
