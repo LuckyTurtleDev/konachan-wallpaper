@@ -446,6 +446,7 @@ dependencies = [
  "serde",
  "tokio",
  "wallpaper",
+ "xrandr",
 ]
 
 [[package]]
@@ -561,6 +562,12 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
 name = "ppv-lite86"
@@ -1242,4 +1249,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "winapi",
+]
+
+[[package]]
+name = "x11"
+version = "2.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dd0565fa8bfba8c5efe02725b14dff114c866724eff2cfd44d76cea74bcd87a"
+dependencies = [
+ "libc",
+ "pkg-config",
+]
+
+[[package]]
+name = "xrandr"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9faecbb5f354fe09959775758b6f7b6524ee80103a6c5c66a57112a2f707862"
+dependencies = [
+ "indexmap",
+ "thiserror",
+ "x11",
 ]
