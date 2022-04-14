@@ -57,8 +57,7 @@ pub async fn get_posts(tags: &Vec<String>, count: usize) -> Vec<String> {
 		}
 		Some(tmp)
 	};
-	let mut base_url = Url::parse("https://konachan.net/post.json?limit=100000")
-		.unwrap();
+	let mut base_url = Url::parse("https://konachan.net/post.json?limit=100000").unwrap();
 	base_url.set_query(tags_string.as_deref());
 	let mut picture_count: usize = 0;
 	let mut page: u64 = 1;
