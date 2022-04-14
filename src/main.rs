@@ -29,7 +29,7 @@ enum Opt {
 }
 
 fn download() -> anyhow::Result<()> {
-	let mut image_paths = get_posts(&vec!["rating:safe".to_string()], 10);
+	let mut image_paths = get_posts(&vec!["rating:safe".to_string(), "red_hair".to_string(), "long_hair".to_string(), "dress".to_string(), "hat".to_string(), "short_hair".to_string(),] , 10);
 	fs::create_dir(config::WALLPAPERS_FILE.as_path().parent().unwrap());
 	fs::create_dir(config::WALLPAPERS_FOLDER.to_string());
 	let mut file = File::create(config::WALLPAPERS_FILE.as_path()).unwrap();

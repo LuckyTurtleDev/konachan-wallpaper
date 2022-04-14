@@ -28,6 +28,7 @@ pub async fn download_and_save_image(url: String, path: impl AsRef<Path>) {
 }
 
 async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<ApiPost>> {
+	println!("url: {base_url}");
 	loop {
 		let resp = CLIENT.get(base_url.clone()).query(&[("page", page)]).send().await?;
 		if resp.status().is_success() {
@@ -43,7 +44,22 @@ async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<ApiPost>> {
 
 #[tokio::main]
 pub async fn get_posts(tags: &Vec<String>, count: usize) -> Vec<String> {
-	let base_url = Url::parse("https://konachan.net/post.json?limit=100000&tags=rating:safe").unwrap();
+	let tags_string = if tags.is_empty() {
+		None
+	} else {
+		let mut tmp = "tags=".to_string();
+		for (i, tag) in tags.iter().enumerate() {
+			if i > 4 {
+				break;
+			}
+			tmp.push_str(tag);
+			tmp.push('+');
+		}
+		Some(tmp)
+	};
+	let mut base_url = Url::parse("https://konachan.net/post.json?limit=100000")
+		.unwrap();
+	base_url.set_query(tags_string.as_deref());
 	let mut picture_count: usize = 0;
 	let mut page: u64 = 1;
 	let mut images = Vec::with_capacity(count);
