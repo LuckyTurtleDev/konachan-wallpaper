@@ -17,3 +17,4 @@ pub static WALLPAPERS_FOLDER: Lazy<String> = Lazy::new(|| {
 	.to_string_lossy()
 	.into_owned()
 });
+pub static CURRENT_WALLAPER_FILE: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/tmp/current-wallpaper.txt"));

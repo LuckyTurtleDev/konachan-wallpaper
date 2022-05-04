@@ -16,4 +16,6 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread", "fs"] }
 futures-util = "0.3"
 wallpaper = "3.2.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
 xrandr = "0.1.1"
