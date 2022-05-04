@@ -53,7 +53,7 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 	} else {
 		let mut tmp = "tags=rating:s+".to_string();
 		for (i, tag) in tags.iter().enumerate() {
-			if i > 3 {
+			if i > 4 {
 				break;
 			}
 			tmp.push_str(tag);
@@ -61,6 +61,7 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 		}
 		Some(tmp)
 	};
+	println!("download {count} images for tags {:?}", tags);
 	let mut base_url = Url::parse("https://konachan.net/post.json?limit=100000").unwrap();
 	base_url.set_query(tags_string.as_deref());
 	let mut picture_count: usize = 0;
@@ -69,6 +70,10 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 	let mut files = Vec::with_capacity(count);
 	while picture_count < count {
 		let posts = get_page(page, &base_url).await.unwrap();
+		if posts.is_empty() {
+			println!("no (more) images for this tags are aviable.");
+			break;
+		}
 		for post in &posts {
 			if picture_count >= count {
 				break;

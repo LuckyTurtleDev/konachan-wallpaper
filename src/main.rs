@@ -1,11 +1,12 @@
-use anyhow::{self, bail};
+use anyhow::{self, bail, Context};
 use clap::Parser;
 use once_cell::sync::Lazy;
 use rand::{seq::SliceRandom, thread_rng};
 use reqwest::Client;
 use std::{
+	collections::HashSet,
 	fs,
-	fs::File,
+	fs::{create_dir_all, read_to_string, File},
 	io::{prelude::*, BufReader, Write},
 	process::{exit, Command},
 };
@@ -28,18 +29,13 @@ enum Opt {
 }
 
 fn download() -> anyhow::Result<()> {
-	let mut image_paths = get_posts(
-		&[
-			"red_hair".to_string(),
-			"long_hair".to_string(),
-			"dress".to_string(),
-			"hat".to_string(),
-			"short_hair".to_string(),
-		]
-		.into_iter()
-		.collect(),
-		10,
-	);
+	create_dir_all(&*config::WALLPAPERS_FOLDER);
+	let tags = read_to_string(config::CONFIG_FILE.as_path())
+		.with_context(|| format!("Failed to open {}", config::CONFIG_FILE.display()))?;
+	let tags: String = tags.strip_suffix('\n').unwrap_or(&tags).into();
+	let tags: HashSet<String> = tags.split(" ").map(String::from).collect();
+	let mut image_paths = get_posts(&tags, 200);
+	println!("{} images were dowloaded", image_paths.len());
 	fs::create_dir(config::WALLPAPERS_FILE.as_path().parent().unwrap());
 	fs::create_dir(config::WALLPAPERS_FOLDER.to_string());
 	let mut file = File::create(config::WALLPAPERS_FILE.as_path()).unwrap();

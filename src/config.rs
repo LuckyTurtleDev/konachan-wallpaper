@@ -18,3 +18,4 @@ pub static WALLPAPERS_FOLDER: Lazy<String> = Lazy::new(|| {
 	.into_owned()
 });
 pub static CURRENT_WALLAPER_FILE: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/tmp/current-wallpaper.txt"));
+pub static CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| PROJECT_DIRS.config_dir().join("config.txt"));
