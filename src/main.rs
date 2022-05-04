@@ -10,7 +10,6 @@ use std::{
 	process::{exit, Command},
 };
 use wallpaper;
-use xrandr;
 
 mod config;
 
