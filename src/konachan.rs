@@ -32,14 +32,14 @@ pub async fn download_and_save_image(url: String, path: impl AsRef<Path>) {
 }
 
 async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<Post>> {
-	println!("get: {base_url} at {page}");
 	loop {
+		println!("get posts: {base_url} at page {page}");
 		let resp = CLIENT.get(base_url.clone()).query(&[("page", page)]).send().await?;
 		if resp.status().is_success() {
 			return Ok(resp.json::<Vec<Post>>().await?);
 		}
 		if resp.status().is_client_error() {
-			bail!("client error {}", resp.status());
+			panic!("client error downloading page: {:?}", resp.status());
 		}
 		eprintln!("error downloading page: {:?}; retry in 50ms", resp.status());
 		sleep(Duration::from_millis(50)).await;
@@ -69,7 +69,16 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 	let mut images = Vec::with_capacity(count);
 	let mut files = Vec::with_capacity(count);
 	while picture_count < count {
-		let posts = get_page(page, &base_url).await.unwrap();
+		let posts = get_page(page, &base_url).await;
+		let posts = match posts {
+			Ok(value) => value,
+			Err(error) => {
+				eprintln!("{error:?}");
+				eprintln!("retry again in 10s");
+				sleep(Duration::from_secs(10)).await;
+				continue;
+			},
+		};
 		if posts.is_empty() {
 			println!("no (more) images for this tags are aviable.");
 			break;
