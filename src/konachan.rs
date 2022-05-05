@@ -24,11 +24,23 @@ mod serde_tags {
 	}
 }
 
-pub async fn download_and_save_image(url: String, path: impl AsRef<Path>) {
+pub async fn download_and_save_image(url: &str, path: impl AsRef<Path>) -> anyhow::Result<()> {
 	let path = path.as_ref();
-	let image = CLIENT.get(url.clone()).send().await.unwrap().bytes().await.unwrap();
+	let image = CLIENT.get(url).send().await?.bytes().await?;
 	fs::write(path, image).await.unwrap();
 	println!("{}", path.display());
+}
+
+pub async fn download_and_save_image_retry<P>(url: String, path: P)
+where
+	P: AsRef<Path> + Copy
+{
+	loop {
+		match download_and_save_image(&url, path) {
+			Ok(_) => break,
+			Err(e) => eprintln!("{e}")
+		}
+	}
 }
 
 async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<Post>> {
