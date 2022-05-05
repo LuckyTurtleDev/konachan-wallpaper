@@ -24,7 +24,7 @@ mod serde_tags {
 	}
 }
 
-pub async fn download_and_save_image(url: &str, path: impl AsRef<Path>) -> anyhow::Result<()> {
+pub async fn download_and_save_image(url: &str, path: &Path) -> anyhow::Result<()> {
 	let path = path.as_ref();
 	let image = CLIENT.get(url).send().await?.bytes().await?;
 	fs::write(path, image).await.unwrap();
@@ -32,10 +32,8 @@ pub async fn download_and_save_image(url: &str, path: impl AsRef<Path>) -> anyho
 	Ok(())
 }
 
-pub async fn download_and_save_image_retry<P>(url: String, path: P)
-where
-	P: AsRef<Path> + Copy
-{
+pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Path>) {
+	let path = path.as_ref();
 	loop {
 		match download_and_save_image(&url, path).await {
 			Ok(_) => break,
