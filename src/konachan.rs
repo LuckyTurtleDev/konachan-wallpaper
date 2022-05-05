@@ -24,11 +24,21 @@ mod serde_tags {
 	}
 }
 
-pub async fn download_and_save_image(url: String, path: impl AsRef<Path>) {
-	let path = path.as_ref();
-	let image = CLIENT.get(url.clone()).send().await.unwrap().bytes().await.unwrap();
+pub async fn download_and_save_image(url: &str, path: &Path) -> anyhow::Result<()> {
+	let image = CLIENT.get(url).send().await?.bytes().await?;
 	fs::write(path, image).await.unwrap();
 	println!("{}", path.display());
+	Ok(())
+}
+
+pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Path>) {
+	let path = path.as_ref();
+	loop {
+		match download_and_save_image(&url, path).await {
+			Ok(_) => break,
+			Err(e) => eprintln!("{e}")
+		}
+	}
 }
 
 async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<Post>> {
@@ -106,7 +116,7 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 						post.id,
 						&post.file_url[post.file_url.rfind(".").unwrap()..]
 					);
-					images.push(tokio::spawn(download_and_save_image(
+					images.push(tokio::spawn(download_and_save_image_retry(
 						post.file_url.clone(),
 						file_name.clone(),
 					)));
