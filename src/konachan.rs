@@ -25,7 +25,11 @@ mod serde_tags {
 }
 
 pub async fn download_and_save_image(url: &str, path: &Path) -> anyhow::Result<()> {
-	let image = CLIENT.get(url).send().await?.bytes().await?;
+	let resp = CLIENT.get(url).send().await?;
+	if !resp.status().is_success() {
+		bail!("error downloading image: {:?}", resp.status());
+	}
+	let image = resp.bytes().await?;
 	fs::write(path, image).await.unwrap();
 	println!("{}", path.display());
 	Ok(())
@@ -38,6 +42,8 @@ pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Path>) 
 			Ok(_) => break,
 			Err(e) => eprintln!("{e}"),
 		}
+		eprintln!("rety in 1s");
+		sleep(Duration::from_secs(1)).await;
 	}
 }
 
