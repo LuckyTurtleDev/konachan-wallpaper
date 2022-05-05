@@ -36,7 +36,7 @@ pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Path>) 
 	loop {
 		match download_and_save_image(&url, path).await {
 			Ok(_) => break,
-			Err(e) => eprintln!("{e}")
+			Err(e) => eprintln!("{e}"),
 		}
 	}
 }
