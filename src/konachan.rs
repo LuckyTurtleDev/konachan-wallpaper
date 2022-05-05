@@ -37,7 +37,7 @@ where
 	P: AsRef<Path> + Copy
 {
 	loop {
-		match download_and_save_image(&url, path) {
+		match download_and_save_image(&url, path).await {
 			Ok(_) => break,
 			Err(e) => eprintln!("{e}")
 		}
