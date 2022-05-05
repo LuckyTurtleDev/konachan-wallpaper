@@ -29,6 +29,7 @@ pub async fn download_and_save_image(url: &str, path: impl AsRef<Path>) -> anyho
 	let image = CLIENT.get(url).send().await?.bytes().await?;
 	fs::write(path, image).await.unwrap();
 	println!("{}", path.display());
+	Ok(())
 }
 
 pub async fn download_and_save_image_retry<P>(url: String, path: P)
