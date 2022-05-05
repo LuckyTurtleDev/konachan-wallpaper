@@ -33,7 +33,7 @@ pub async fn download_and_save_image(url: &str, path: &Path) -> anyhow::Result<(
 }
 
 pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Path>) {
-	let path = path.as_ref();
+	let path: &Path = path.as_ref();
 	loop {
 		match download_and_save_image(&url, path).await {
 			Ok(_) => break,
