@@ -110,7 +110,7 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 						post.id,
 						&post.file_url[post.file_url.rfind(".").unwrap()..]
 					);
-					images.push(tokio::spawn(download_and_save_image(
+					images.push(tokio::spawn(download_and_save_image_retry(
 						post.file_url.clone(),
 						file_name.clone(),
 					)));
