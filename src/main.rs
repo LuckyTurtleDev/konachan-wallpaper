@@ -33,7 +33,8 @@ fn download() -> anyhow::Result<()> {
 	let tags = read_to_string(config::CONFIG_FILE.as_path())
 		.with_context(|| format!("Failed to open {}", config::CONFIG_FILE.display()))?;
 	let tags: String = tags.strip_suffix('\n').unwrap_or(&tags).into();
-	let tags: HashSet<String> = tags.split(" ").map(String::from).collect();
+	let mut tags: HashSet<String> = tags.split(" ").map(String::from).collect();
+	tags.remove("");
 	let mut image_paths = get_posts(&tags, 200);
 	println!("{} images were dowloaded", image_paths.len());
 	let mut file = File::create(config::WALLPAPERS_FILE.as_path()).unwrap();
