@@ -15,24 +15,26 @@ This allow you to set new wallpaper even if your pc is temporary offline.
 
 ## Configuration:
 You need to create a `config.txt` file.
-This file should include tags seperated by space.
+This file should include tags separated by space.
 Tags with does start with `-` will, be blacklisted.
 Wildcard are not supported.
 The file can be empty, at this case every image will be used.
-You can add as many tags, as you want. The limtation of the website does not matter.
+You can add as many tags, as you want. The limitation of the website does not matter.
 
 Example `config.txt`:
 ```txt
 hatsune_miku headphones -underwear
 ```
 
-The program support only [tags](https://konachan.net/tag?name=&type=&order=count) everthing else like `rating:s` or `order:score` is not supported and leads to untested behaviour.
-Current the rating save is hardcoded.
+The program support only [tags](https://konachan.net/tag?name=&type=&order=count) everything else like `rating:s` or `order:score` is not supported and leads to untested behavior.
+Current the rating save is hard coded.
 
 ## Limitations: 
-The programm is current in a very early stage and many thing are not suppored or are hardcoded at the moment.
+The program is current in a very early stage and many thing are not supported or are hardcoded at the moment.
 Also the format of the config file will probably change multiple times.
-Current the rating `save`, the picture count `200` and the order `latest` is hardcoded.
+Current the rating `save`, the picture count `200` and the order `latest` is hard coded.
+
+For information about supported OS/desktop environments see the [more-wallpapers](https://crates.io/crates/more-wallpapers) crate.
 
 ## Installation:
 Current are no prebuild binaries available. You must build konachan-wallpaper by yourself. See below.
