@@ -26,6 +26,25 @@ enum Opt {
 	Set,
 }
 
+trait BoxedErrorHandling<V, E>
+where
+	E: std::fmt::Display,
+{
+	fn to_ah(self) -> anyhow::Result<V>;
+}
+
+impl<V, E> BoxedErrorHandling<V, E> for Result<V, E>
+where
+	E: std::fmt::Display,
+{
+	fn to_ah(self) -> anyhow::Result<V> {
+		match self {
+			Ok(value) => Ok(value),
+			Err(error) => bail!("{error}"),
+		}
+	}
+}
+
 fn download() -> anyhow::Result<()> {
 	println!("load config from {:?}", config::CONFIG_FILE.display());
 	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
@@ -71,7 +90,8 @@ fn set() -> anyhow::Result<()> {
 			config::WALLPAPERS_FILE.display()
 		);
 	}
-	let mut used_images = more_wallpapers::set_random_wallpapers_from_vec(image_paths, more_wallpapers::Mode::Crop)?;
+	let mut used_images =
+		more_wallpapers::set_random_wallpapers_from_vec(image_paths, more_wallpapers::Mode::Crop).to_ah()?;
 
 	println!("set {:?} as wallpaper(s)", used_images);
 	if config::CURRENT_WALLAPER_FILE.parent().unwrap().is_dir() {

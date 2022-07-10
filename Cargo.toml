@@ -1,20 +1,21 @@
 [package]
 name = "konachan-wallpaper"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
-publish = false
+license = "Apache-2.0"
+description= "download and set desktop wallpaper from [Konachan.net](https://konachan.net/)"
+repository = "https://github.com/LuckyTurtleDev/konachan-wallpaper"
+keywords = ["konachan", "desktop", "wallpaper", "background"]
+include = ["/src/**/*.rs", "/LICENSE", "/README.md"]
 
 [dependencies]
 anyhow = "1.0.57"
 clap = { version = "3.1.15", features = ["derive"] }
 clap_complete = "3.1.3"
 directories = "4.0.1"
-more-wallpapers = { git = "https://github.com/Lukas1818/more-wallpapers", features = ["rand"] }
+more-wallpapers = { version = "0.1", features = ["rand", "wallpaper"] }
 once_cell = "1.10.0"
 reqwest = { version = "0.11.10", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.137", features = ["derive"] }
 tokio = { version = "1.18.1", features = ["macros", "rt-multi-thread", "fs"] }
 futures-util = "0.3.21"
-
-[target.'cfg(target_os = "linux")'.dependencies]
-xrandr = "0.1.1"
