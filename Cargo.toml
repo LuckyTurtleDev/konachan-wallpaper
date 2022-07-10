@@ -9,13 +9,12 @@ anyhow = "1.0.57"
 clap = { version = "3.1.15", features = ["derive"] }
 clap_complete = "3.1.3"
 directories = "4.0.1"
+more-wallpapers = { git = "https://github.com/Lukas1818/more-wallpapers", features = ["rand"] }
 once_cell = "1.10.0"
-rand = "0.8.5"
 reqwest = { version = "0.11.10", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.137", features = ["derive"] }
 tokio = { version = "1.18.1", features = ["macros", "rt-multi-thread", "fs"] }
 futures-util = "0.3.21"
-wallpaper = "3.2.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 xrandr = "0.1.1"

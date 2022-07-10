@@ -77,7 +77,7 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 		}
 		Some(tmp)
 	};
-	println!("download {count} images for tags {:?}", tags);
+	println!("download {count} images for the following tags: {:?}", tags);
 	let mut base_url = Url::parse("https://konachan.net/post.json?limit=100000").unwrap();
 	base_url.set_query(tags_string.as_deref());
 	let mut picture_count: usize = 0;
