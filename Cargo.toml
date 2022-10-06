@@ -10,7 +10,7 @@ include = ["/src/**/*.rs", "/LICENSE", "/README.md"]
 
 [dependencies]
 anyhow = "1.0.57"
-clap = { version = "3.1.15", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 clap_complete = "3.1.3"
 directories = "4.0.1"
 more-wallpapers = { version = "0.1", features = ["rand", "wallpaper"] }
