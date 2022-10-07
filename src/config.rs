@@ -1,6 +1,7 @@
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
-use std::path::PathBuf;
+use serde::Deserialize;
+use std::{collections::HashSet, path::PathBuf};
 
 const CARGO_PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
 static PROJECT_DIRS: Lazy<ProjectDirs> =
@@ -18,4 +19,23 @@ pub static WALLPAPERS_FOLDER: Lazy<String> = Lazy::new(|| {
 	.into_owned()
 });
 pub static CURRENT_WALLAPER_FILE: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/tmp/current-wallpaper.txt"));
-pub static CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| PROJECT_DIRS.config_dir().join("config.txt"));
+pub static CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| PROJECT_DIRS.config_dir().join("config.toml"));
+
+#[derive(Debug, Deserialize)]
+pub struct Action {
+	pub tags: HashSet<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Event {
+	pub conditon: String,
+	#[serde(default)]
+	pub priority: u16,
+	#[serde(flatten)]
+	pub action: Action,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConfigFile {
+	pub events: Vec<Event>,
+}

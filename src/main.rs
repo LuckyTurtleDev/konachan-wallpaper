@@ -1,19 +1,26 @@
 use anyhow::{self, bail, Context};
 use clap::Parser;
+use config::CONFIG_FILE;
+use evalexpr::eval_boolean;
 use more_wallpapers;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use std::{
 	collections::HashSet,
-	fs::{create_dir_all, read_to_string, File},
+	fs,
+	fs::{create_dir_all, File},
 	io::{prelude::*, BufReader, Write},
 	process::exit,
 };
 
 mod config;
-
+mod context;
 mod konachan;
 use konachan::*;
+mod utils;
+use utils::read_to_string;
+
+use crate::{config::ConfigFile, context::get_context};
 
 static CLIENT: Lazy<Client> = Lazy::new(|| Client::new());
 
@@ -46,15 +53,19 @@ where
 }
 
 fn download() -> anyhow::Result<()> {
-	println!("load config from {:?}", config::CONFIG_FILE.display());
+	get_context();
+	let config: ConfigFile = toml::from_str(&read_to_string(&*config::CONFIG_FILE)?)?;
+	let mut action = None;
+	for event in config.events {
+		if eval_boolean(&event.conditon).with_context(|| format!("error evaluating conditon: {}", &event.conditon))? {
+			action = Some(event.action);
+			break;
+		}
+	}
+	let action = action.expect("No event is active");
 	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
 	create_dir_all(config::WALLPAPERS_FILE.as_path().parent().unwrap())?;
-	let tags = read_to_string(config::CONFIG_FILE.as_path())
-		.with_context(|| format!("Failed to open {}", config::CONFIG_FILE.display()))?;
-	let tags: String = tags.strip_suffix('\n').unwrap_or(&tags).into();
-	let mut tags: HashSet<String> = tags.split(" ").map(String::from).collect();
-	tags.remove("");
-	let mut image_paths = get_posts(&tags, 200);
+	let mut image_paths = get_posts(&action.tags, 200);
 	println!("{} images were dowloaded", image_paths.len());
 	let mut file = File::create(config::WALLPAPERS_FILE.as_path()).unwrap();
 	while !image_paths.is_empty() {
