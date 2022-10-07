@@ -1,19 +1,20 @@
+use adler::Adler32;
 use anyhow::{self, bail, Context};
 use clap::Parser;
-use config::CONFIG_FILE;
-use evalexpr::eval_boolean;
 use more_wallpapers;
 use once_cell::sync::Lazy;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::{
-	collections::HashSet,
-	fs,
 	fs::{create_dir_all, File},
+	hash::Hash,
 	io::{prelude::*, BufReader, Write},
 	process::exit,
 };
 
 mod config;
+use config::Action;
 mod context;
 mod konachan;
 use konachan::*;
@@ -52,19 +53,31 @@ where
 	}
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct State {
+	action_hash: u32,
+	last_update: i64,
+}
+
 fn download() -> anyhow::Result<()> {
-	get_context();
+	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
+	create_dir_all(config::STATE_PATH.as_path().parent().unwrap())?;
+	let context = get_context()?;
 	let config: ConfigFile = toml::from_str(&read_to_string(&*config::CONFIG_FILE)?)?;
 	let mut action = None;
 	for event in config.events {
-		if eval_boolean(&event.conditon).with_context(|| format!("error evaluating conditon: {}", &event.conditon))? {
+		if evalexpr::eval_boolean_with_context(&event.conditon, &context)
+			.with_context(|| format!("error evaluating conditon: {}", &event.conditon))?
+		{
 			action = Some(event.action);
 			break;
 		}
 	}
 	let action = action.expect("No event is active");
-	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
-	create_dir_all(config::WALLPAPERS_FILE.as_path().parent().unwrap())?;
+	let mut hasher = Adler32::new();
+	serde_json::to_string(&action)?.hash(&mut hasher); // Hashset does not impl Hash
+	hasher.checksum();
+	let mut state: State = serde_json::from_str(&read_to_string(&*config::STATE_PATH)?)?;
 	let mut image_paths = get_posts(&action.tags, 200);
 	println!("{} images were dowloaded", image_paths.len());
 	let mut file = File::create(config::WALLPAPERS_FILE.as_path()).unwrap();
