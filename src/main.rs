@@ -75,10 +75,10 @@ fn download() -> anyhow::Result<()> {
 	}
 	let action = action.expect("No event is active");
 	let mut hasher = Adler32::new();
-	serde_json::to_string(&action)?.hash(&mut hasher); // Hashset does not impl Hash
+	action.hash(&mut hasher);
 	hasher.checksum();
 	let mut state: State = serde_json::from_str(&read_to_string(&*config::STATE_PATH)?)?;
-	let mut image_paths = get_posts(&action.tags, 200);
+	let mut image_paths = get_posts(&action.tags.into_iter().collect(), 200);
 	println!("{} images were dowloaded", image_paths.len());
 	let mut file = File::create(config::WALLPAPERS_FILE.as_path()).unwrap();
 	while !image_paths.is_empty() {

@@ -1,7 +1,10 @@
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 use serde::{self, de, Deserialize, Serialize};
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+	collections::{BTreeSet, HashSet},
+	path::PathBuf,
+};
 
 const CARGO_PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
 static PROJECT_DIRS: Lazy<ProjectDirs> =
@@ -21,9 +24,9 @@ pub static WALLPAPERS_FOLDER: Lazy<String> = Lazy::new(|| {
 pub static CURRENT_WALLAPER_FILE: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/tmp/current-wallpaper.txt"));
 pub static CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| PROJECT_DIRS.config_dir().join("config.toml"));
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Hash, Serialize)]
 pub struct Action {
-	pub tags: HashSet<String>,
+	pub tags: BTreeSet<String>,
 }
 
 fn deserilize_vec_event<'de, D>(deserializer: D) -> Result<Vec<Event>, D::Error>
