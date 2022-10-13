@@ -117,7 +117,7 @@ fn download() -> anyhow::Result<()> {
 	let mut hasher = Adler32::new();
 	action.hash(&mut hasher);
 	let hash = hasher.checksum();
-	let image_paths = get_posts(&action.tags.into_iter().collect(), 10);
+	let image_paths = get_posts(&action.tags.into_iter().collect(), config.count.into());
 	println!("{} images were dowloaded", image_paths.len());
 	let mut state = State::load(true)?;
 	for action_state in state.actions.iter_mut() {
