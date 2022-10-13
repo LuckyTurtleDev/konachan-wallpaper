@@ -5,17 +5,17 @@ use clap::Parser;
 use evalexpr::HashMapContext;
 use more_wallpapers;
 use once_cell::sync::Lazy;
+use open;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{
 	fs,
-	fs::{create_dir_all, File},
+	fs::{create_dir_all, File, OpenOptions},
 	hash::Hash,
 	io::Write,
 	process::exit,
 };
-use tokio::time::error::Elapsed;
 
 mod config;
 use config::{Action, Event};
@@ -35,12 +35,22 @@ struct OptDownload {
 }
 
 #[derive(Debug, Parser)]
+struct OptOpen {
+	/// program, with will be used to open the config file
+	#[clap(short, long)]
+	with: Option<String>,
+}
+
+#[derive(Debug, Parser)]
 enum Opt {
 	/// download new pictures
 	Download(OptDownload),
 
 	/// set a dowloaded picture as Wallpaper
 	Set,
+
+	/// open config file at system default program
+	OpenConfig(OptOpen),
 }
 
 trait BoxedErrorHandling<V, E>
@@ -184,10 +194,28 @@ fn set() -> anyhow::Result<()> {
 	Ok(())
 }
 
+fn open_config(opt: OptOpen) -> anyhow::Result<()> {
+	create_dir_all(config::CONFIG_FILE.as_path().parent().unwrap())?;
+	OpenOptions::new().create(true).write(true).open(&*config::CONFIG_FILE)?; //touch file
+	match opt.with {
+		Some(with) => {
+			println!("open {:?} with {:?}", config::CONFIG_FILE.display(), with);
+			open::with(&*config::CONFIG_FILE, with)?;
+		},
+		None => {
+			println!("open {:?} with system default progrm", config::CONFIG_FILE.display());
+			open::that(&*config::CONFIG_FILE)?;
+		},
+	}
+
+	Ok(())
+}
+
 fn main() {
 	let result = match Opt::parse() {
 		Opt::Download(opt) => download(opt),
 		Opt::Set => set(),
+		Opt::OpenConfig(opt) => open_config(opt),
 	};
 	if let Err(error) = result {
 		eprintln!("ERROR: {:?}", error);
