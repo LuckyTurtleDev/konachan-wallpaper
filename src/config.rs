@@ -1,10 +1,7 @@
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 use serde::{self, de, Deserialize, Serialize};
-use std::{
-	collections::{BTreeSet, HashSet},
-	path::PathBuf,
-};
+use std::{collections::BTreeSet, path::PathBuf};
 
 const CARGO_PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
 static PROJECT_DIRS: Lazy<ProjectDirs> =
