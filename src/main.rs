@@ -57,10 +57,42 @@ where
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct State {
+pub struct ActionState {
 	action_hash: u32,
 	files: Vec<String>,
 	last_update: i64,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct State {
+	actions: Vec<ActionState>,
+}
+
+impl State {
+	fn load(allow_not_found: bool) -> anyhow::Result<Self> {
+		let content = fs::read_to_string(&*config::STATE_PATH);
+		let content = match content {
+			Ok(value) => Ok(value),
+			Err(error) => {
+				if error.kind() == std::io::ErrorKind::NotFound {
+					if allow_not_found {
+						return Ok(Self::default());
+					}
+					eprintln!("run 'konachan-wallpaper download' first, to dowload wallpapers");
+				}
+				Err(error)
+			},
+		};
+		let content = content.with_context(|| format!("failed to open state from {:?}", config::STATE_PATH.display()))?;
+		Ok(serde_json::from_str(&content)
+			.with_context(|| format!("failed to parse state from {:?}", config::STATE_PATH.display()))?)
+	}
+
+	fn save(&self) -> anyhow::Result<()> {
+		fs::write(&*config::STATE_PATH, serde_json::to_string(&self).unwrap())
+			.with_context(|| format!("failed to save state to {:?}", config::STATE_PATH.display()))?;
+		Ok(())
+	}
 }
 
 fn get_action(events: Vec<Event>, context: HashMapContext) -> anyhow::Result<Option<Action>> {
@@ -80,65 +112,35 @@ fn download() -> anyhow::Result<()> {
 	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
 	create_dir_all(config::STATE_PATH.as_path().parent().unwrap())?;
 	let context = get_context()?;
-	let config: ConfigFile = toml::from_str(&read_to_string(&*config::CONFIG_FILE)?)?;
+	let config = ConfigFile::load()?;
 	let action = get_action(config.events, context)?.expect("No event is active");
 	let mut hasher = Adler32::new();
 	action.hash(&mut hasher);
 	let hash = hasher.checksum();
 	let image_paths = get_posts(&action.tags.into_iter().collect(), 10);
 	println!("{} images were dowloaded", image_paths.len());
-	let states: anyhow::Result<Vec<State>> = (|| {
-		let content = fs::read_to_string(&*config::STATE_PATH);
-		let content = match content {
-			Ok(value) => value,
-			Err(error) => {
-				if error.kind() == std::io::ErrorKind::NotFound {
-					return anyhow::Result::Ok(Vec::new());
-				}
-				return anyhow::Result::Err(error.into());
-			},
-		};
-		anyhow::Result::Ok(serde_json::from_str(&content)?)
-	})();
-	let mut states: Vec<State> = states.unwrap_or_else(|error| {
-		println!("Error reading {}\n{}", config::STATE_PATH.to_string_lossy(), error);
-		Vec::new()
-	});
-	for state in states.iter_mut() {
-		if state.action_hash == hash {
-			state.files = image_paths.clone();
-			state.last_update = Utc::now().timestamp();
+	let mut state = State::load(true)?;
+	for action_state in state.actions.iter_mut() {
+		if action_state.action_hash == hash {
+			action_state.files = image_paths.clone();
+			action_state.last_update = Utc::now().timestamp();
 		}
 	}
-	fs::write(&*config::STATE_PATH, serde_json::to_string(&states)?)?;
+	state.save()?;
 	Ok(())
 }
 
 fn set() -> anyhow::Result<()> {
 	let config: ConfigFile = toml::from_str(&read_to_string(&*config::CONFIG_FILE)?)?;
 	let action = get_action(config.events, get_context()?)?.expect("No event is active");
-	let file_content = &fs::read_to_string(&*config::STATE_PATH);
-	let file_content = match file_content {
-		Ok(value) => value,
-		Err(error) => {
-			if error.kind() == std::io::ErrorKind::NotFound {
-				bail!(
-					"Error: could not open {:?}: {}\nrun 'konachan-wallpaper download' first, to dowload wallpapers",
-					config::STATE_PATH.display(),
-					error
-				);
-			}
-			bail!("Error: could not open {:?}: {}", config::STATE_PATH.display(), error);
-		},
-	};
-	let states: Vec<State> = serde_json::from_str(file_content)?;
+	let state = State::load(false)?;
 	let mut hasher = Adler32::new();
 	action.hash(&mut hasher);
 	let hash = hasher.checksum();
 	let mut pictures = None;
-	for state in states {
-		if hash == state.action_hash {
-			pictures = Some(state.files);
+	for action_state in state.actions {
+		if hash == action_state.action_hash {
+			pictures = Some(action_state.files);
 		}
 	}
 	let pictures = pictures

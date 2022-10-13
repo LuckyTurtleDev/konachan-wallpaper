@@ -1,7 +1,8 @@
+use anyhow::Context;
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 use serde::{self, de, Deserialize, Serialize};
-use std::{collections::BTreeSet, path::PathBuf};
+use std::{collections::BTreeSet, fs::read_to_string, path::PathBuf};
 
 const CARGO_PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
 static PROJECT_DIRS: Lazy<ProjectDirs> =
@@ -48,4 +49,14 @@ pub struct Event {
 pub struct ConfigFile {
 	#[serde(deserialize_with = "deserilize_vec_event")]
 	pub events: Vec<Event>,
+}
+
+impl ConfigFile {
+	pub fn load() -> anyhow::Result<Self> {
+		Ok(toml::from_str(
+			&read_to_string(&*CONFIG_FILE)
+				.with_context(|| format!("failed to open config file from {:?}", CONFIG_FILE.display()))?,
+		)
+		.with_context(|| format!("failed to parse config file {:?}", CONFIG_FILE.display()))?)
+	}
 }
