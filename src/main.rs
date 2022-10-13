@@ -21,8 +21,6 @@ use config::{Action, Event};
 mod context;
 mod konachan;
 use konachan::*;
-mod utils;
-use utils::read_to_string;
 
 use crate::{config::ConfigFile, context::get_context};
 
@@ -141,7 +139,7 @@ fn download() -> anyhow::Result<()> {
 }
 
 fn set() -> anyhow::Result<()> {
-	let config: ConfigFile = toml::from_str(&read_to_string(&*config::CONFIG_FILE)?)?;
+	let config = ConfigFile::load()?;
 	let action = get_action(config.events, get_context()?)?.expect("No event is active");
 	let state = State::load(false)?;
 	let mut hasher = Adler32::new();
