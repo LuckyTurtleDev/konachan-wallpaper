@@ -120,11 +120,21 @@ fn download() -> anyhow::Result<()> {
 	let image_paths = get_posts(&action.tags.into_iter().collect(), config.count.into());
 	println!("{} images were dowloaded", image_paths.len());
 	let mut state = State::load(true)?;
+	let mut found = false;
 	for action_state in state.actions.iter_mut() {
 		if action_state.action_hash == hash {
 			action_state.files = image_paths.clone();
 			action_state.last_update = Utc::now().timestamp();
+			found = true;
+			break;
 		}
+	}
+	if !found {
+		state.actions.push(ActionState {
+			action_hash: hash,
+			files: image_paths,
+			last_update: Utc::now().timestamp(),
+		})
 	}
 	state.save()?;
 	Ok(())
