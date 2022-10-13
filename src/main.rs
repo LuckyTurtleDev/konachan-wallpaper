@@ -15,6 +15,7 @@ use std::{
 	io::Write,
 	process::exit,
 };
+use tokio::time::error::Elapsed;
 
 mod config;
 use config::{Action, Event};
@@ -27,9 +28,16 @@ use crate::{config::ConfigFile, context::get_context};
 static CLIENT: Lazy<Client> = Lazy::new(|| Client::new());
 
 #[derive(Debug, Parser)]
+struct OptDownload {
+	/// download pictures for alle events, inculding inactivs
+	#[clap(short, long)]
+	all: bool,
+}
+
+#[derive(Debug, Parser)]
 enum Opt {
 	/// download new pictures
-	Download,
+	Download(OptDownload),
 
 	/// set a dowloaded picture as Wallpaper
 	Set,
@@ -106,33 +114,39 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> anyhow::Result<Opt
 	Ok(action)
 }
 
-fn download() -> anyhow::Result<()> {
+fn download(opt: OptDownload) -> anyhow::Result<()> {
 	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
 	create_dir_all(config::STATE_PATH.as_path().parent().unwrap())?;
 	let context = get_context()?;
 	let config = ConfigFile::load()?;
-	let action = get_action(config.events, context)?.expect("No event is active");
-	let mut hasher = Adler32::new();
-	action.hash(&mut hasher);
-	let hash = hasher.checksum();
-	let image_paths = get_posts(&action.tags.into_iter().collect(), config.count.into());
-	println!("{} images were dowloaded", image_paths.len());
+	let actions = if opt.all {
+		config.events.iter().map(|event| event.action.clone()).collect()
+	} else {
+		vec![get_action(config.events, context)?.expect("No event is active")]
+	};
 	let mut state = State::load(true)?;
-	let mut found = false;
-	for action_state in state.actions.iter_mut() {
-		if action_state.action_hash == hash {
-			action_state.files = image_paths.clone();
-			action_state.last_update = Utc::now().timestamp();
-			found = true;
-			break;
+	for action in actions {
+		let mut hasher = Adler32::new();
+		action.hash(&mut hasher);
+		let hash = hasher.checksum();
+		let image_paths = get_posts(&action.tags.into_iter().collect(), config.count.into());
+		println!("{} images were dowloaded", image_paths.len());
+		let mut found = false;
+		for action_state in state.actions.iter_mut() {
+			if action_state.action_hash == hash {
+				action_state.files = image_paths.clone();
+				action_state.last_update = Utc::now().timestamp();
+				found = true;
+				break;
+			}
 		}
-	}
-	if !found {
-		state.actions.push(ActionState {
-			action_hash: hash,
-			files: image_paths,
-			last_update: Utc::now().timestamp(),
-		})
+		if !found {
+			state.actions.push(ActionState {
+				action_hash: hash,
+				files: image_paths,
+				last_update: Utc::now().timestamp(),
+			})
+		}
 	}
 	state.save()?;
 	Ok(())
@@ -172,7 +186,7 @@ fn set() -> anyhow::Result<()> {
 
 fn main() {
 	let result = match Opt::parse() {
-		Opt::Download => download(),
+		Opt::Download(opt) => download(opt),
 		Opt::Set => set(),
 	};
 	if let Err(error) = result {
