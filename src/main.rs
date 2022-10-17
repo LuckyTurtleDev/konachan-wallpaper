@@ -175,8 +175,12 @@ fn set() -> anyhow::Result<()> {
 			pictures = Some(action_state.files);
 		}
 	}
-	let pictures = pictures
-		.expect("no image dowloaded for this action. \nrun 'konachan-wallpaper download' first, to dowload wallpapers");
+	let pictures = match pictures {
+		None => {
+			bail!("no image dowloaded for this action. \nrun 'konachan-wallpaper download' first, to dowload wallpapers");
+		},
+		Some(value) => value,
+	};
 	let mut used_images = more_wallpapers::set_random_wallpapers_from_vec(pictures, more_wallpapers::Mode::Crop).to_ah()?;
 
 	println!("set {:?} as wallpaper(s)", used_images);
