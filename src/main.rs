@@ -114,11 +114,14 @@ impl State {
 fn get_action(events: Vec<Event>, context: HashMapContext) -> anyhow::Result<Option<Action>> {
 	let mut action = None;
 	for event in events {
+		print!("{:<10} => ", event.name.unwrap_or("unamed Event".to_owned()));
 		if evalexpr::eval_boolean_with_context(&event.conditon, &context)
 			.with_context(|| format!("error evaluating conditon: {}", &event.conditon))?
 		{
+			println!("active       ");
 			action = Some(event.action);
-			break;
+		} else {
+			println!("inactive     ");
 		}
 	}
 	Ok(action)

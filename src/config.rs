@@ -38,6 +38,7 @@ where
 
 #[derive(Debug, Deserialize)]
 pub struct Event {
+	pub name: Option<String>,
 	pub conditon: String,
 	#[serde(default)]
 	pub priority: u16,
