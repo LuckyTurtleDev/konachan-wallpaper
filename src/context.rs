@@ -1,7 +1,8 @@
 use chrono::{offset::Local, Datelike, Timelike};
-use evalexpr::{context_map, EvalexprError, HashMapContext};
+use evalexpr::{context_map, Context, EvalexprError, HashMapContext, IterateVariablesContext};
 use local_ip_address::local_ip;
 use std::{
+	collections::BTreeMap,
 	net::{IpAddr, IpAddr::*, Ipv4Addr},
 	process::Command,
 };
@@ -31,7 +32,7 @@ pub fn get_context() -> Result<HashMapContext, EvalexprError> {
 	let router_mac = match router_mac {
 		Ok(out) => {
 			if out.status.success() {
-				let mut mac =String::from_utf8(out.stdout).unwrap_or_else(|err| {
+				let mut mac = String::from_utf8(out.stdout).unwrap_or_else(|err| {
 					eprintln!("error geting wifi.router.mac; bash return non valid utf8: {:?}", err);
 					"".to_owned()
 				});
@@ -68,6 +69,27 @@ pub fn get_context() -> Result<HashMapContext, EvalexprError> {
 	"ipv4.3" => ip.octets().get(3).unwrap().clone() as i64,
 	"wifi.router.mac" => router_mac,
 	}?;
-	println!("contex: {:#?}", contex);
+	println!("contex: {}", contex.to_pretty_string());
 	Ok(contex)
+}
+
+trait PrettyString {
+	fn to_pretty_string(&self) -> String;
+}
+
+impl PrettyString for HashMapContext {
+	fn to_pretty_string(&self) -> String {
+		// copy vars to BTree for sorting
+		let mut vars = BTreeMap::new();
+		for var_name in self.iter_variable_names() {
+			let var_value = self.get_value(&var_name).unwrap();
+			vars.insert(var_name, var_value);
+		}
+		let mut out = "".to_owned();
+		for var in vars {
+			out = format!("{out}\n{:<24} := {:?} ", var.0, var.1);
+		}
+		out.pop();
+		out
+	}
 }
