@@ -3,6 +3,7 @@ use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 use serde::{self, de, Deserialize, Serialize};
 use std::{collections::BTreeSet, fs::read_to_string, num::NonZeroUsize, path::PathBuf};
+use strum_macros::{Display, EnumString};
 
 const CARGO_PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
 static PROJECT_DIRS: Lazy<ProjectDirs> =
@@ -36,8 +37,18 @@ where
 	Ok(events)
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Display, EnumString)]
+#[strum(serialize_all = "lowercase")]
+pub enum EventType {
+	#[default]
+	Replace,
+	Add,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Event {
+	#[serde(default, rename = "type")]
+	pub event_type: EventType,
 	pub name: Option<String>,
 	pub conditon: String,
 	#[serde(default)]

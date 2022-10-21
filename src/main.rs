@@ -10,6 +10,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{
+	collections::HashSet,
 	fs,
 	fs::{create_dir_all, File, OpenOptions},
 	hash::Hash,
@@ -18,7 +19,7 @@ use std::{
 };
 
 mod config;
-use config::{Action, Event};
+use config::{Action, Event, EventType};
 mod context;
 mod konachan;
 use konachan::*;
@@ -111,20 +112,33 @@ impl State {
 	}
 }
 
-fn get_action(events: Vec<Event>, context: HashMapContext) -> anyhow::Result<Option<Action>> {
-	let mut action = None;
+fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
+	let mut actions = Vec::new();
 	for event in events {
 		print!("{:<10} => ", event.name.unwrap_or("unamed Event".to_owned()));
 		if evalexpr::eval_boolean_with_context(&event.conditon, &context)
-			.with_context(|| format!("error evaluating conditon: {}", &event.conditon))?
-		{
+			.with_context(|| format!("error evaluating conditon: {}", &event.conditon))
+			.unwrap_or_else(|err| {
+				eprintln!("{err}");
+				false
+			}) {
 			println!("active       ");
-			action = Some(event.action);
+			match event.event_type {
+				EventType::Add => actions.push(event.action),
+				EventType::Replace => {
+					actions.clear();
+					actions.push(event.action);
+				},
+			};
 		} else {
 			println!("inactive     ");
 		}
 	}
-	Ok(action)
+	if actions.is_empty() {
+		eprintln!("No event is active");
+		exit(-1);
+	}
+	actions
 }
 
 fn download(opt: OptDownload) -> anyhow::Result<()> {
@@ -135,7 +149,7 @@ fn download(opt: OptDownload) -> anyhow::Result<()> {
 	let actions = if opt.all {
 		config.events.iter().map(|event| event.action.clone()).collect()
 	} else {
-		vec![get_action(config.events, context)?.expect("No event is active")]
+		get_action(config.events, context)
 	};
 	let mut state = State::load(true)?;
 	for action in actions {
@@ -167,24 +181,26 @@ fn download(opt: OptDownload) -> anyhow::Result<()> {
 
 fn set() -> anyhow::Result<()> {
 	let config = ConfigFile::load()?;
-	let action = get_action(config.events, get_context(config.wifi_scan)?)?.expect("No event is active");
+	let actions = get_action(config.events, get_context(config.wifi_scan)?);
 	let state = State::load(false)?;
 	let mut hasher = Adler32::new();
-	action.hash(&mut hasher);
-	let hash = hasher.checksum();
-	let mut pictures = None;
-	for action_state in state.actions {
-		if hash == action_state.action_hash {
-			pictures = Some(action_state.files);
+	let mut pictures = HashSet::new();
+	for action in actions {
+		action.hash(&mut hasher);
+		let hash = hasher.checksum();
+		for action_state in state.actions.iter() {
+			if hash == action_state.action_hash {
+				for picture in action_state.files.iter() {
+					pictures.insert(picture);
+				}
+			}
 		}
 	}
-	let pictures = match pictures {
-		None => {
-			bail!("no image dowloaded for this action. \nrun 'konachan-wallpaper download' first, to dowload wallpapers");
-		},
-		Some(value) => value,
-	};
-	let mut used_images = more_wallpapers::set_random_wallpapers_from_vec(pictures, more_wallpapers::Mode::Crop).to_ah()?;
+	if pictures.is_empty() {
+		bail!("no image dowloaded for this action. \nrun 'konachan-wallpaper download' first, to dowload wallpapers");
+	}
+	let mut used_images =
+		more_wallpapers::set_random_wallpapers_from_vec(pictures.iter().collect(), more_wallpapers::Mode::Crop).to_ah()?;
 
 	println!("set {:?} as wallpaper(s)", used_images);
 	if config::CURRENT_WALLAPER_FILE.parent().unwrap().is_dir() {
