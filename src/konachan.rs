@@ -3,7 +3,10 @@ use anyhow::{self, bail};
 use futures_util::future::join_all;
 use reqwest::Url;
 use serde::Deserialize;
-use std::{collections::HashSet, path::Path, time::Duration};
+use std::{collections::HashSet, time::Duration};
+use camino::Utf8PathBuf;
+use camino::Utf8Path;
+use colored::*;
 use tokio::{fs, time::sleep};
 
 #[derive(Debug, Deserialize)]
@@ -24,18 +27,18 @@ mod serde_tags {
 	}
 }
 
-pub async fn download_and_save_image(url: &str, path: &Path) -> anyhow::Result<()> {
+pub async fn download_and_save_image(url: &str, path: &Utf8Path) -> anyhow::Result<()> {
 	let resp = CLIENT.get(url).send().await?;
 	if !resp.status().is_success() {
 		bail!("error downloading image: {:?}", resp.status());
 	}
 	let image = resp.bytes().await?;
 	fs::write(path, image).await.unwrap();
-	println!("{}", path.display());
+	println!("{}", path.to_string().green());
 	Ok(())
 }
 
-pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Path>) {
+pub async fn download_and_save_image_retry(url: String, path: impl AsRef<Utf8Path>) {
 	let path = path.as_ref();
 	loop {
 		match download_and_save_image(&url, path).await {
@@ -116,17 +119,21 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 			}
 			if download_image {
 				{
-					let file_name = format!(
+					let file_name = Utf8PathBuf::from(format!(
 						"{}Konachan.com - {}{}",
 						config::WALLPAPERS_FOLDER.as_str(),
 						post.id,
 						&post.file_url[post.file_url.rfind(".").unwrap()..]
-					);
-					images.push(tokio::spawn(download_and_save_image_retry(
+					));
+					if file_name.exists() {
+						println!("{}", file_name.to_string().dimmed())
+					} else {
+						images.push(tokio::spawn(download_and_save_image_retry(
 						post.file_url.clone(),
 						file_name.clone(),
 					)));
-					files.push(file_name);
+					}
+					files.push(file_name.to_string());
 					picture_count += 1;
 				}
 			}
@@ -135,4 +142,5 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 	}
 	join_all(images).await;
 	files
+	
 }
