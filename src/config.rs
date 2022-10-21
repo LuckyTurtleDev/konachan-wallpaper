@@ -1,8 +1,9 @@
+use adler::Adler32;
 use anyhow::Context;
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 use serde::{self, de, Deserialize, Serialize};
-use std::{collections::BTreeSet, fs::read_to_string, num::NonZeroUsize, path::PathBuf};
+use std::{collections::BTreeSet, fs::read_to_string, hash::Hash, num::NonZeroUsize, path::PathBuf};
 use strum_macros::{Display, EnumString};
 
 const CARGO_PKG_NAME: &'static str = env!("CARGO_PKG_NAME");
@@ -23,7 +24,7 @@ pub static WALLPAPERS_FOLDER: Lazy<String> = Lazy::new(|| {
 pub static CURRENT_WALLAPER_FILE: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("/tmp/current-wallpaper.txt"));
 pub static CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| PROJECT_DIRS.config_dir().join("config.toml"));
 
-#[derive(Clone, Debug, Deserialize, Hash, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Action {
 	pub tags: BTreeSet<String>,
 	pub count: Option<usize>,
@@ -36,6 +37,13 @@ impl Action {
 		if action.count.is_some() {
 			self.count = action.count;
 		}
+	}
+
+	//we do only need the hast of some fields
+	pub fn get_hash(&self) -> u32 {
+		let mut hasher = Adler32::new();
+		self.tags.hash(&mut hasher);
+		hasher.checksum()
 	}
 }
 

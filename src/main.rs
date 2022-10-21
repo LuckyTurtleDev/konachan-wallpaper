@@ -1,4 +1,3 @@
-use adler::Adler32;
 use anyhow::{self, bail, Context};
 use chrono::offset::Utc;
 use clap::Parser;
@@ -13,7 +12,6 @@ use std::{
 	collections::HashSet,
 	fs,
 	fs::{create_dir_all, File, OpenOptions},
-	hash::Hash,
 	io::Write,
 	process::exit,
 };
@@ -175,9 +173,7 @@ fn download(opt: OptDownload) -> anyhow::Result<()> {
 	};
 	let mut state = State::load(true)?;
 	for action in actions {
-		let mut hasher = Adler32::new();
-		action.hash(&mut hasher);
-		let hash = hasher.checksum();
+		let hash = action.get_hash();
 		let image_paths = get_posts(&action.tags.into_iter().collect(), config.count.into());
 		println!("{} images were dowloaded", image_paths.len());
 		let mut found = false;
@@ -207,9 +203,7 @@ fn set() -> anyhow::Result<()> {
 	let state = State::load(false)?;
 	let mut pictures = HashSet::new();
 	for action in actions {
-		let mut hasher = Adler32::new();
-		action.hash(&mut hasher);
-		let hash = hasher.checksum();
+		let hash = action.get_hash();
 		let mut found_action = false;
 		for action_state in state.actions.iter() {
 			if hash == action_state.action_hash {
