@@ -72,6 +72,7 @@ pub enum EventType {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Event {
 	#[serde(default, rename = "type")]
 	pub event_type: EventType,
@@ -92,6 +93,7 @@ fn default_count() -> NonZeroUsize {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConfigFile {
 	#[serde(default = "default_wifi_scan")]
 	pub wifi_scan: bool,

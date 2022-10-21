@@ -174,7 +174,10 @@ fn download(opt: OptDownload) -> anyhow::Result<()> {
 	let mut state = State::load(true)?;
 	for action in actions {
 		let hash = action.get_hash();
-		let image_paths = get_posts(&action.tags.into_iter().collect(), config.count.into());
+		let image_paths = get_posts(
+			&action.tags.into_iter().collect(),
+			action.count.unwrap_or(config.count.into()),
+		);
 		println!("{} images were dowloaded", image_paths.len());
 		let mut found = false;
 		for action_state in state.actions.iter_mut() {
@@ -208,7 +211,11 @@ fn set() -> anyhow::Result<()> {
 		for action_state in state.actions.iter() {
 			if hash == action_state.action_hash {
 				if action.count.unwrap_or(config.count.into()) > action_state.files.len() {
-					eprintln!("Warning: need more wallpaper for action. Use only {} wallpapers.", action_state.files.len());
+					eprintln!(
+						"Warning: need more wallpaper for action. Use only {} wallpapers, need {}.",
+						action_state.files.len(),
+						action.count.unwrap_or(config.count.into())
+					);
 					eprintln!("run 'konachan-wallpaper to dowload more wallpapers");
 				}
 				for (i, picture) in action_state.files.iter().enumerate() {
