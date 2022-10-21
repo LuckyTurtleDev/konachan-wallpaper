@@ -26,11 +26,16 @@ pub static CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| PROJECT_DIRS.config_dir().j
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 pub struct Action {
 	pub tags: BTreeSet<String>,
+	pub count: Option<usize>,
+	pub count_expr: Option<String>,
 }
 
 impl Action {
 	pub fn modifi(&mut self, action: &Action) {
 		self.tags.extend(action.tags.clone());
+		if action.count.is_some() {
+			self.count = action.count;
+		}
 	}
 }
 

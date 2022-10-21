@@ -123,21 +123,31 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 				false
 			}) {
 			println!("active       ");
+			let mut new_action = event.action;
+			if let Some(expr) = new_action.count_expr.as_ref() {
+				let count = evalexpr::eval_int_with_context(expr, &context)
+					.with_context(|| format!("error evaluating conut expressinon: {}", &event.conditon));
+				match count {
+					Ok(value) => new_action.count = Some(value as usize),
+					Err(err) => eprintln!("{err}"),
+				}
+			}
+
 			match event.event_type {
-				EventType::Add => actions.push(event.action),
+				EventType::Add => actions.push(new_action),
 				EventType::Replace => {
 					actions.clear();
-					actions.push(event.action);
+					actions.push(new_action);
 				},
 				EventType::Modifi => {
 					for action in actions.iter_mut() {
-						action.modifi(&event.action);
+						action.modifi(&new_action);
 					}
 				},
 				EventType::Copy => {
 					let mut copy = actions.clone();
 					for action in actions.iter_mut() {
-						action.modifi(&event.action);
+						action.modifi(&new_action);
 					}
 					actions.append(&mut copy);
 				},
