@@ -23,15 +23,6 @@ pub fn get_context(wifi_scan: bool) -> Result<HashMapContext, EvalexprError> {
 		},
 	};
 
-	let router_mac = Command::new("bash")
-		.args(&[
-			"-o",
-			"pipefail",
-			"-c",
-			r#"nmcli d wifi list |grep -E '^\*' | awk '{print $2}'"#,
-		])
-		.output();
-
 	let mut contex = context_map! {
 	"time.day" => time.day() as i64,
 	"time.month" => time.month() as i64,
@@ -49,6 +40,14 @@ pub fn get_context(wifi_scan: bool) -> Result<HashMapContext, EvalexprError> {
 
 	if wifi_scan {
 		println!("scanning for wifi. This will take a moment.");
+		let router_mac = Command::new("bash")
+			.args(&[
+				"-o",
+				"pipefail",
+				"-c",
+				r#"nmcli d wifi list |grep -E '^\*' | awk '{print $2}'"#,
+			])
+			.output();
 		let router_mac = match router_mac {
 			Ok(out) => {
 				if out.status.success() {

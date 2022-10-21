@@ -66,22 +66,14 @@ async fn get_page(page: u64, base_url: &Url) -> anyhow::Result<Vec<Post>> {
 
 #[tokio::main]
 pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
-	let tags_string = if tags.is_empty() {
-		None
-	} else {
-		let mut tmp = "tags=rating:s+".to_string();
-		for (i, tag) in tags.iter().enumerate() {
-			if i > 4 {
-				break;
-			}
-			tmp.push_str(tag);
-			tmp.push('+');
-		}
-		Some(tmp)
-	};
+	let mut tags_string = "tags=rating:s+".to_string();
+	for tag in tags.iter().take(4) {
+		tags_string.push_str(tag);
+		tags_string.push('+');
+	}
 	println!("download {count} images for the following tags: {:?}", tags);
 	let mut base_url = Url::parse("https://konachan.net/post.json?limit=100000").unwrap();
-	base_url.set_query(tags_string.as_deref());
+	base_url.set_query(Some(&tags_string));
 	let mut picture_count: usize = 0;
 	let mut page: u64 = 1;
 	let mut images = Vec::with_capacity(count);
@@ -108,9 +100,6 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 			let mut download_image = true;
 			for tag in tags {
 				let have_tag = post.tags.contains(tag.strip_prefix('-').unwrap_or_else(|| tag));
-				if post.id == 324255 {
-					println!("id {} {tag} {have_tag} all: {:?}", post.id, post.tags);
-				}
 				if (!have_tag && !tag.starts_with('-')) || (have_tag && tag.starts_with('-')) {
 					download_image = false;
 					break;
