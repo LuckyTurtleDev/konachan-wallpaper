@@ -129,6 +129,18 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 					actions.clear();
 					actions.push(event.action);
 				},
+				EventType::Modifi => {
+					for action in actions.iter_mut() {
+						action.modifi(&event.action);
+					}
+				},
+				EventType::Copy => {
+					let mut copy = actions.clone();
+					for action in actions.iter_mut() {
+						action.modifi(&event.action);
+					}
+					actions.append(&mut copy);
+				},
 			};
 		} else {
 			println!("inactive     ");
@@ -183,21 +195,26 @@ fn set() -> anyhow::Result<()> {
 	let config = ConfigFile::load()?;
 	let actions = get_action(config.events, get_context(config.wifi_scan)?);
 	let state = State::load(false)?;
-	let mut hasher = Adler32::new();
 	let mut pictures = HashSet::new();
 	for action in actions {
+		let mut hasher = Adler32::new();
 		action.hash(&mut hasher);
 		let hash = hasher.checksum();
+		let mut found_action = false;
 		for action_state in state.actions.iter() {
 			if hash == action_state.action_hash {
 				for picture in action_state.files.iter() {
 					pictures.insert(picture);
 				}
+				found_action = true;
 			}
+		}
+		if !found_action {
+			eprintln!("no image dowloaded for this action. Action will be ignored. \nrun 'konachan-wallpaper download' first, to dowload wallpapers");
 		}
 	}
 	if pictures.is_empty() {
-		bail!("no image dowloaded for this action. \nrun 'konachan-wallpaper download' first, to dowload wallpapers");
+		bail!("no image dowloaded");
 	}
 	let mut used_images =
 		more_wallpapers::set_random_wallpapers_from_vec(pictures.iter().collect(), more_wallpapers::Mode::Crop).to_ah()?;

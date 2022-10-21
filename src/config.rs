@@ -28,6 +28,12 @@ pub struct Action {
 	pub tags: BTreeSet<String>,
 }
 
+impl Action {
+	pub fn modifi(&mut self, action: &Action) {
+		self.tags.extend(action.tags.clone());
+	}
+}
+
 fn deserilize_vec_event<'de, D>(deserializer: D) -> Result<Vec<Event>, D::Error>
 where
 	D: de::Deserializer<'de>,
@@ -41,8 +47,15 @@ where
 #[strum(serialize_all = "lowercase")]
 pub enum EventType {
 	#[default]
+	/// Repclace all active events
 	Replace,
+	/// add a new event
 	Add,
+	/// modifi all active events
+	Modifi,
+	/// copy active action and modifi the copy.
+	//Did not change existing events
+	Copy,
 }
 
 #[derive(Debug, Deserialize)]
