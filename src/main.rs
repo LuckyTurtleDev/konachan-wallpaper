@@ -207,8 +207,15 @@ fn set() -> anyhow::Result<()> {
 		let mut found_action = false;
 		for action_state in state.actions.iter() {
 			if hash == action_state.action_hash {
-				for picture in action_state.files.iter() {
+				if action.count.unwrap_or(config.count.into()) > action_state.files.len() {
+					eprintln!("Warning: need more wallpaper for action. Use only {} wallpapers.", action_state.files.len());
+					eprintln!("run 'konachan-wallpaper to dowload more wallpapers");
+				}
+				for (i, picture) in action_state.files.iter().enumerate() {
 					pictures.insert(picture);
+					if i >= action.count.unwrap_or(config.count.into()) {
+						break;
+					}
 				}
 				found_action = true;
 			}
