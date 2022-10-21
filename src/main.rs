@@ -117,17 +117,17 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 		if evalexpr::eval_boolean_with_context(&event.conditon, &context)
 			.with_context(|| format!("error evaluating conditon: {}", &event.conditon))
 			.unwrap_or_else(|err| {
-				eprintln!("{err}");
+				eprintln!("{err:?}");
 				false
 			}) {
 			println!("active       ");
 			let mut new_action = event.action;
 			if let Some(expr) = new_action.count_expr.as_ref() {
 				let count = evalexpr::eval_int_with_context(expr, &context)
-					.with_context(|| format!("error evaluating conut expressinon: {}", &event.conditon));
+					.with_context(|| format!("error evaluating conut expressinon: {}", &expr));
 				match count {
 					Ok(value) => new_action.count = Some(value as usize),
-					Err(err) => eprintln!("{err}"),
+					Err(err) => eprintln!("{err:?}"),
 				}
 			}
 

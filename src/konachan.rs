@@ -1,12 +1,11 @@
 use crate::{config, CLIENT};
 use anyhow::{self, bail};
+use camino::{Utf8Path, Utf8PathBuf};
+use colored::*;
 use futures_util::future::join_all;
 use reqwest::Url;
 use serde::Deserialize;
 use std::{collections::HashSet, time::Duration};
-use camino::Utf8PathBuf;
-use camino::Utf8Path;
-use colored::*;
 use tokio::{fs, time::sleep};
 
 #[derive(Debug, Deserialize)]
@@ -129,9 +128,9 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 						println!("{}", file_name.to_string().dimmed())
 					} else {
 						images.push(tokio::spawn(download_and_save_image_retry(
-						post.file_url.clone(),
-						file_name.clone(),
-					)));
+							post.file_url.clone(),
+							file_name.clone(),
+						)));
 					}
 					files.push(file_name.to_string());
 					picture_count += 1;
@@ -142,5 +141,4 @@ pub async fn get_posts(tags: &HashSet<String>, count: usize) -> Vec<String> {
 	}
 	join_all(images).await;
 	files
-	
 }
