@@ -46,12 +46,18 @@ pub struct Event {
 	pub action: Action,
 }
 
+fn default_wifi_scan() -> bool {
+	true
+}
+
 fn default_count() -> NonZeroUsize {
 	NonZeroUsize::new(200).unwrap()
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigFile {
+	#[serde(default = "default_wifi_scan")]
+	pub wifi_scan: bool,
 	#[serde(default = "default_count")]
 	pub count: NonZeroUsize,
 	#[serde(deserialize_with = "deserilize_vec_event")]

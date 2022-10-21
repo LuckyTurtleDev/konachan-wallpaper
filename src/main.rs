@@ -130,8 +130,8 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> anyhow::Result<Opt
 fn download(opt: OptDownload) -> anyhow::Result<()> {
 	create_dir_all(&*config::WALLPAPERS_FOLDER)?;
 	create_dir_all(config::STATE_PATH.as_path().parent().unwrap())?;
-	let context = get_context()?;
 	let config = ConfigFile::load()?;
+	let context = get_context(config.wifi_scan)?;
 	let actions = if opt.all {
 		config.events.iter().map(|event| event.action.clone()).collect()
 	} else {
@@ -167,7 +167,7 @@ fn download(opt: OptDownload) -> anyhow::Result<()> {
 
 fn set() -> anyhow::Result<()> {
 	let config = ConfigFile::load()?;
-	let action = get_action(config.events, get_context()?)?.expect("No event is active");
+	let action = get_action(config.events, get_context(config.wifi_scan)?)?.expect("No event is active");
 	let state = State::load(false)?;
 	let mut hasher = Adler32::new();
 	action.hash(&mut hasher);
