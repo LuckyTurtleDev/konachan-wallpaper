@@ -122,11 +122,11 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 			}) {
 			println!("active       ");
 			let mut new_action = event.action;
-			if let Some(expr) = new_action.count_expr.as_ref() {
-				let count = evalexpr::eval_int_with_context(expr, &context)
+			if let Some(expr) = new_action.ratio_expr.as_ref() {
+				let ratio = evalexpr::eval_float_with_context(expr, &context)
 					.with_context(|| format!("error evaluating conut expressinon: {}", &expr));
-				match count {
-					Ok(value) => new_action.count = Some(value as usize),
+				match ratio {
+					Ok(value) => new_action.ratio = Some(value),
 					Err(err) => eprintln!("{err:?}"),
 				}
 			}
@@ -176,7 +176,7 @@ fn download(opt: OptDownload) -> anyhow::Result<()> {
 		let hash = action.get_hash();
 		let image_paths = get_posts(
 			&action.tags.into_iter().collect(),
-			action.count.unwrap_or(config.count.into()),
+			(action.ratio.unwrap_or(1.0) * (config.count.get()) as f64) as usize,
 		);
 		println!("{} images were dowloaded", image_paths.len());
 		let mut found = false;
@@ -210,17 +210,18 @@ fn set() -> anyhow::Result<()> {
 		let mut found_action = false;
 		for action_state in state.actions.iter() {
 			if hash == action_state.action_hash {
-				if action.count.unwrap_or(config.count.into()) > action_state.files.len() {
+				let count = (action.ratio.unwrap_or(1.0) * (config.count.get()) as f64) as usize;
+				if count > action_state.files.len() {
 					eprintln!(
 						"Warning: need more wallpaper for action. Use only {} wallpapers, need {}.",
 						action_state.files.len(),
-						action.count.unwrap_or(config.count.into())
+						count
 					);
 					eprintln!("run 'konachan-wallpaper to dowload more wallpapers");
 				}
 				for (i, picture) in action_state.files.iter().enumerate() {
 					pictures.insert(picture);
-					if i >= action.count.unwrap_or(config.count.into()) {
+					if i >= count {
 						break;
 					}
 				}
