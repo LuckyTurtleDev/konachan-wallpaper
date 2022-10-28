@@ -9,7 +9,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{
-	async_iter::AsyncIterator,
 	collections::HashSet,
 	fs,
 	fs::{create_dir_all, File, OpenOptions},
@@ -137,7 +136,7 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 
 			match event.event_type {
 				EventType::Add => {
-					if event.force_ratio && event.action.ratio.is_some() {
+					if event.force_ratio && new_action.ratio.is_some() {
 						actions.normalize_to(1.0 - new_action.ratio.unwrap());
 					}
 					actions.push(new_action);
@@ -150,7 +149,7 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 					for action in actions.iter_mut() {
 						action.modifi(&new_action);
 					}
-					if event.force_ratio && event.action.ratio.is_some() {
+					if event.force_ratio && new_action.ratio.is_some() {
 						actions.normalize_to(new_action.ratio.unwrap());
 					}
 				},
@@ -159,9 +158,9 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 					for action in actions.iter_mut() {
 						action.modifi(&new_action);
 					}
-					if event.force_ratio && event.action.ratio.is_some() {
-						copy.normalize_to(1.0 - event.action.ratio.unwrap()); //normalize old action to 1-ratio
-						actions.normalize_to(event.action.ratio.unwrap()); //normalize new action to   ratio
+					if event.force_ratio && new_action.ratio.is_some() {
+						copy.normalize_to(1.0 - new_action.ratio.unwrap()); //normalize old action to 1-ratio
+						actions.normalize_to(new_action.ratio.unwrap()); //normalize new action to   ratio
 					}
 					actions.append(&mut copy);
 				},
