@@ -47,6 +47,22 @@ impl Action {
 	}
 }
 
+pub trait VecAction {
+	fn normalize_to(&mut self, target_ratio: f64);
+	fn normilize(&mut self) {
+		self.normalize_to(1.0);
+	}
+}
+
+impl VecAction for Vec<Action> {
+	fn normalize_to(&mut self, target_ratio: f64) {
+		let sum: f64 = self.iter().map(|a: &Action| a.ratio.unwrap_or(1.0)).sum();
+		for action in self.iter_mut() {
+			action.ratio = Some((action.ratio.unwrap_or(1.0) / sum) * target_ratio);
+		}
+	}
+}
+
 fn deserilize_vec_event<'de, D>(deserializer: D) -> Result<Vec<Event>, D::Error>
 where
 	D: de::Deserializer<'de>,
@@ -80,12 +96,10 @@ pub struct Event {
 	pub conditon: String,
 	#[serde(default)]
 	pub priority: u16,
+	#[serde(default)]
+	pub force_ratio: bool,
 	#[serde(flatten)]
 	pub action: Action,
-}
-
-fn default_wifi_scan() -> bool {
-	true
 }
 
 fn default_count() -> NonZeroUsize {
@@ -95,7 +109,7 @@ fn default_count() -> NonZeroUsize {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigFile {
-	#[serde(default = "default_wifi_scan")]
+	#[serde(default)]
 	pub wifi_scan: bool,
 	#[serde(default = "default_count")]
 	pub count: NonZeroUsize,

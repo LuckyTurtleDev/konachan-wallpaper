@@ -9,6 +9,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{
+	async_iter::AsyncIterator,
 	collections::HashSet,
 	fs,
 	fs::{create_dir_all, File, OpenOptions},
@@ -22,7 +23,10 @@ mod context;
 mod konachan;
 use konachan::*;
 
-use crate::{config::ConfigFile, context::get_context};
+use crate::{
+	config::{ConfigFile, VecAction},
+	context::get_context,
+};
 
 static CLIENT: Lazy<Client> = Lazy::new(|| Client::new());
 
@@ -132,7 +136,12 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 			}
 
 			match event.event_type {
-				EventType::Add => actions.push(new_action),
+				EventType::Add => {
+					if event.force_ratio && event.action.ratio.is_some() {
+						actions.normalize_to(1.0 - new_action.ratio.unwrap());
+					}
+					actions.push(new_action);
+				},
 				EventType::Replace => {
 					actions.clear();
 					actions.push(new_action);
@@ -141,11 +150,18 @@ fn get_action(events: Vec<Event>, context: HashMapContext) -> Vec<Action> {
 					for action in actions.iter_mut() {
 						action.modifi(&new_action);
 					}
+					if event.force_ratio && event.action.ratio.is_some() {
+						actions.normalize_to(new_action.ratio.unwrap());
+					}
 				},
 				EventType::Copy => {
 					let mut copy = actions.clone();
 					for action in actions.iter_mut() {
 						action.modifi(&new_action);
+					}
+					if event.force_ratio && event.action.ratio.is_some() {
+						copy.normalize_to(1.0 - event.action.ratio.unwrap()); //normalize old action to 1-ratio
+						actions.normalize_to(event.action.ratio.unwrap()); //normalize new action to   ratio
 					}
 					actions.append(&mut copy);
 				},
